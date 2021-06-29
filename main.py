@@ -6,8 +6,8 @@ from flask_restful import Api, Resource
 import requests
 
 app = Flask(__name__)
+app.secret_key = 'any random string'
 api = Api(app)
-
 
 @dataclass
 class Repository:
@@ -73,10 +73,11 @@ class RepositoryFromDictionaryConverter:
 class RepositoryResource(Resource):
     def get(self):
 
-       #if 'repositories' in session:
-            #return session['repositories']
-
         repositories = []
+
+        if 'repositories' in session:
+            repositories = session['repositories']
+            return jsonify(repositories)
 
         response = requests.get('https://api.github.com/repositories')
 
@@ -97,7 +98,7 @@ class RepositoryResource(Resource):
 
             i = i + 1
 
-        #session['repositories'] = jsonify(repositories)
+        session['repositories'] = repositories
         return jsonify(repositories)
 
 
