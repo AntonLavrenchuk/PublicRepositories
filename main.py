@@ -1,7 +1,7 @@
 import datetime
 from dataclasses import dataclass
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, session
 from flask_restful import Api, Resource
 import requests
 
@@ -21,23 +21,78 @@ class Repository:
 
 class RepositoryResource(Resource):
     def get(self):
-        response = requests.get('https://api.github.com/repositories')
+
+       #if 'repositories' in session:
+            #return session['repositories']
 
         repositories = []
 
+        response = requests.get('https://api.github.com/repositories')
+
+        i = 0
+
         for item in response.json():
 
-            name = item['name']
+            if i >= 2:
+                break
 
-            description = item['description']
+            name = self.getName(item)
+            description = self.getDescription(item)
 
-            repository = Repository(name, description, 0, 0, [], datetime.datetime(1956, 1, 31, 12, 0, tzinfo=datetime.timezone.utc))
+            issues = self.getIssues(item)
+
+            pulls = self.getPulls(item)
+            languages = self.getLanguages(item)
+            created_at = datetime.datetime(1956, 1, 31, 12, 0, tzinfo=datetime.timezone.utc)
+
+            repository = Repository(name, description, issues, pulls, languages, created_at)
 
             dictionary_repository = repository.__dict__
 
             repositories.append(dictionary_repository)
 
+            i = i + 1
+
+        #session['repositories'] = jsonify(repositories)
         return jsonify(repositories)
+
+    def getName(self, repository):
+        return repository['name']
+
+    def getDescription(self, repository):
+        return repository['description']
+
+    def getOwner(self, repository):
+        return repository['owner']['login']
+
+    def getIssues(self, repository):
+        repo = self.getName(repository)
+        owner = self.getOwner(repository)
+
+        response = requests.get(f'https://api.github.com/repos/{owner}/{repo}/issues?per_page=1')
+
+        for item in response.json():
+            return item['number']
+
+
+    def getPulls(self, repository):
+        repo = self.getName(repository)
+        owner = self.getOwner(repository)
+
+        response = requests.get(f'https://api.github.com/repos/{owner}/{repo}/pulls?per_page=1')
+
+        for item in response.json():
+            return item['number']
+
+    def getLanguages(self, repository):
+        languages_url = repository['languages_url']
+
+        languages = requests.get(languages_url).json().keys()
+
+        return list(languages)
+
+    def getCreatedAt(self, repository):
+        pass
 
 
 api.add_resource(RepositoryResource, "/")
