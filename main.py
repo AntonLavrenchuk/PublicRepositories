@@ -43,7 +43,7 @@ class RepositoryResource(Resource):
 
             pulls = self.getPulls(item)
             languages = self.getLanguages(item)
-            created_at = datetime.datetime(1956, 1, 31, 12, 0, tzinfo=datetime.timezone.utc)
+            created_at = self.getCreatedAt(item)
 
             repository = Repository(name, description, issues, pulls, languages, created_at)
 
@@ -92,7 +92,13 @@ class RepositoryResource(Resource):
         return list(languages)
 
     def getCreatedAt(self, repository):
-        pass
+        repo = self.getName(repository)
+        owner = self.getOwner(repository)
+
+        response = requests.get(f'https://api.github.com/repos/{owner}/{repo}')
+
+        return datetime.datetime.strptime(response.json()['created_at'], '%Y-%m-%dT%H:%M:%S%fZ')
+
 
 
 api.add_resource(RepositoryResource, "/")
