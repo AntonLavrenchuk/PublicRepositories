@@ -12,11 +12,62 @@ api = Api(app)
 @dataclass
 class Repository:
     Name: str
+    Owner: str
     Description: str
     Issues: int
     Pulls: int
     Languages: list
     DateTime: datetime
+
+
+class RepositoryFromDictionaryConverter:
+    def __init__(self, dictionary):
+        self.Dictionary = dictionary
+
+    def Convert(self):
+        repository = Repository(
+            self.getName(),
+            self.getOwner(),
+            self.getDescription(),
+            self.getIssues(),
+            self.getPulls(),
+            self.getLanguages(),
+            self.getCreatedAt())
+
+        return repository
+
+    def getName(self):
+        return self.Dictionary['name']
+
+    def getDescription(self):
+        return self.Dictionary['description']
+
+    def getOwner(self):
+        return self.Dictionary['owner']['login']
+
+    def getIssues(self):
+        response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}/issues?per_page=1')
+
+        for item in response.json():
+            return item['number']
+
+    def getPulls(self):
+        response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}/pulls?per_page=1')
+
+        for item in response.json():
+            return item['number']
+
+    def getLanguages(self):
+        languages_url = self.Dictionary['languages_url']
+
+        languages = requests.get(languages_url).json().keys()
+
+        return list(languages)
+
+    def getCreatedAt(self):
+        response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}')
+
+        return datetime.datetime.strptime(response.json()['created_at'], '%Y-%m-%dT%H:%M:%S%fZ')
 
 
 class RepositoryResource(Resource):
@@ -36,16 +87,9 @@ class RepositoryResource(Resource):
             if i >= 2:
                 break
 
-            name = self.getName(item)
-            description = self.getDescription(item)
+            converter = RepositoryFromDictionaryConverter(item)
 
-            issues = self.getIssues(item)
-
-            pulls = self.getPulls(item)
-            languages = self.getLanguages(item)
-            created_at = self.getCreatedAt(item)
-
-            repository = Repository(name, description, issues, pulls, languages, created_at)
+            repository = converter.Convert()
 
             dictionary_repository = repository.__dict__
 
@@ -55,50 +99,6 @@ class RepositoryResource(Resource):
 
         #session['repositories'] = jsonify(repositories)
         return jsonify(repositories)
-
-    def getName(self, repository):
-        return repository['name']
-
-    def getDescription(self, repository):
-        return repository['description']
-
-    def getOwner(self, repository):
-        return repository['owner']['login']
-
-    def getIssues(self, repository):
-        repo = self.getName(repository)
-        owner = self.getOwner(repository)
-
-        response = requests.get(f'https://api.github.com/repos/{owner}/{repo}/issues?per_page=1')
-
-        for item in response.json():
-            return item['number']
-
-
-    def getPulls(self, repository):
-        repo = self.getName(repository)
-        owner = self.getOwner(repository)
-
-        response = requests.get(f'https://api.github.com/repos/{owner}/{repo}/pulls?per_page=1')
-
-        for item in response.json():
-            return item['number']
-
-    def getLanguages(self, repository):
-        languages_url = repository['languages_url']
-
-        languages = requests.get(languages_url).json().keys()
-
-        return list(languages)
-
-    def getCreatedAt(self, repository):
-        repo = self.getName(repository)
-        owner = self.getOwner(repository)
-
-        response = requests.get(f'https://api.github.com/repos/{owner}/{repo}')
-
-        return datetime.datetime.strptime(response.json()['created_at'], '%Y-%m-%dT%H:%M:%S%fZ')
-
 
 
 api.add_resource(RepositoryResource, "/")
