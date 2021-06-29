@@ -102,7 +102,7 @@ class RepositoryResource(Resource):
         return jsonify(repositories)
 
 
-api.add_resource(RepositoryResource, "/")
+api.add_resource(RepositoryResource, "/get-repositories")
 
 if __name__ == "__main__":
     app.run(debug=True)
