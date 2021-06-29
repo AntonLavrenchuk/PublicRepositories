@@ -26,7 +26,12 @@ class RepositoryResource(Resource):
         repositories = []
 
         for item in response.json():
-            repository = Repository(item['name'], "", 0, 0, [], datetime.datetime(1956, 1, 31, 12, 0, tzinfo=datetime.timezone.utc))
+
+            name = item['name']
+
+            description = item['description']
+
+            repository = Repository(name, description, 0, 0, [], datetime.datetime(1956, 1, 31, 12, 0, tzinfo=datetime.timezone.utc))
 
             dictionary_repository = repository.__dict__
 
