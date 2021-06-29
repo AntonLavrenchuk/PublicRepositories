@@ -17,7 +17,7 @@ class Repository:
     Issues: int
     Pulls: int
     Languages: list
-    DateTime: datetime
+    CreatedAt: datetime
 
 
 class RepositoryFromDictionaryConverter:
