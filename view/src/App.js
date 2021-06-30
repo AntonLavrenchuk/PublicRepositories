@@ -7,7 +7,35 @@ function App() {
   const [error, setError] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [repositories, setRepositories] = useState(null);
-  const [criteria, setCriteria] = useState(null)
+
+  const [languages, setLanguages] = useState(null)
+
+
+  function getFilteredRepositories() {
+    if(languages) {
+      var hasIntersection = (arr1, arr2) => {
+        for(const el1 of arr1) {
+          for(const el2 of arr2) {
+            if( el1 == el2 ) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      return repositories.filter(repository => hasIntersection(repository.languages, languages));
+    }
+
+
+    return repositories;
+  }
+
+  function handleChangeLanguages(e) {
+    let selectedValues = Array.from(e.target.selectedOptions, option => option.value);
+
+    setLanguages(selectedValues);
+  }
 
   function getUniqueLanguages() {
 
@@ -21,7 +49,6 @@ function App() {
 
     return [...resultSet];
   }
-
 
   useEffect(() => {
     if( localStorage.getItem('repositories') != null ) {
@@ -46,7 +73,6 @@ function App() {
 
   useEffect(() => {
     if(repositories) {
-      console.log(repositories);
       localStorage.setItem('repositories', JSON.stringify(repositories));
       setIsLoaded(true); 
     } 
@@ -66,7 +92,7 @@ function App() {
     return (
       <div>
         <form>
-          <select name="languages" multiple>
+          <select name="languages" multiple onChange={handleChangeLanguages}>
             {getUniqueLanguages().map((language) => (
               <option name={language} key = {language}>
                 {language}
@@ -77,7 +103,7 @@ function App() {
           <button onClick={(e)=>e.preventDefault()}>Submit</button>
         </form>
         <ul>
-          {Object.values(repositories).map(repository => (
+          {Object.values(getFilteredRepositories()).map(repository => (
                 <li key={repository.owner}>
                   <p>Name: {repository.name}</p>
                   <p>Owner: {repository.owner}</p>
