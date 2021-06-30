@@ -1,7 +1,7 @@
 import datetime
 from dataclasses import dataclass
 
-from flask import Flask, jsonify, session
+from flask import Flask, jsonify
 from flask_restful import Api, Resource
 import requests
 
@@ -11,13 +11,13 @@ api = Api(app)
 
 @dataclass
 class Repository:
-    Name: str
-    Owner: str
-    Description: str
-    Issues: int
-    Pulls: int
-    Languages: list
-    CreatedAt: datetime
+    name: str
+    owner: str
+    description: str
+    issues: int
+    pulls: int
+    languages: list
+    created_at: datetime
 
 
 class RepositoryFromDictionaryConverter:
@@ -75,13 +75,12 @@ class RepositoryResource(Resource):
 
         repositories = []
 
-        if 'repositories' in session:
-            repositories = session['repositories']
-            return jsonify(repositories)
-
         response = requests.get('https://api.github.com/repositories')
 
-        i = 0
+        if(response.status_code >= 400):
+            return "We run out of requests" # limit: 60
+
+        i = 0 # to request just 2 repositories
 
         for item in response.json():
 
@@ -98,7 +97,6 @@ class RepositoryResource(Resource):
 
             i = i + 1
 
-        session['repositories'] = repositories
         return jsonify(repositories)
 
 

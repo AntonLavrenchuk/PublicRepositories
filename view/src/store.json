@@ -1,0 +1,25 @@
+[
+    {
+      "created_at": "Mon, 29 Oct 2007 14:37:01 GMT", 
+      "description": "**Grit is no longer maintained. Check out libgit2/rugged.** Grit gives you object oriented read/write access to Git repositories via Ruby.", 
+      "issues": 270, 
+      "languages": [
+        "Ruby"
+      ], 
+      "name": "grit", 
+      "owner": "mojombo", 
+      "pulls": 270
+    }, 
+    {
+      "created_at": "Sat, 12 Jan 2008 05:50:05 GMT", 
+      "description": "Merb Core: All you need. None you don't.", 
+      "issues": 13, 
+      "languages": [
+        "Ruby", 
+        "JavaScript"
+      ], 
+      "name": "merb-core", 
+      "owner": "wycats", 
+      "pulls": null
+    }
+]
