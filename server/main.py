@@ -101,9 +101,9 @@ class RepositoryResource(Resource):
 
         response = jsonify(repositories)
 
-        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers['Access-Control-Allow-Origin'] = '*'
 
-        return response, 200
+        return response
 
 
 api.add_resource(RepositoryResource, "/get-repositories")
