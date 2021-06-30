@@ -1,7 +1,7 @@
 import './App.css';
 import {useEffect, useState} from 'react'
 import repos from './store.json'
-const BASE = 'http://127.0.0.1:5000/get-repositories'
+const ApiUrl = 'http://127.0.0.1:5000/get-repositories'
 
 function App() {
   const [error, setError] = useState(null);
@@ -9,24 +9,24 @@ function App() {
   const [repositories, setRepositories] = useState(null);
 
   useEffect(() => {
-    if( localStorage.getItem('repositories') === null ) {
-      fetch(BASE)
-      .then((res) => {
-        localStorage.setItem('repositories', res.json());
-        return res.json();
-      })
-      .then(
-        (result) => {
-          setRepositories(JSON.parse(result));
-        },
-        (error) => {
-          setIsLoaded(true);
-          setError(error);
-        }
-        )
+    if( localStorage.getItem('repositories') != null ) {
+      setRepositories(JSON.parse(localStorage.getItem('repositories')));
     }
     else {
-      setRepositories(JSON.parse(localStorage.getItem('repositories')));
+      fetch(ApiUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Not 2xx response")
+        }
+        response.json();
+      })
+      .then((data) => {
+        localStorage.setItem('repositories', data);
+        setRepositories(JSON.parse(data));
+      })
+      .catch((err) => {
+        setError(err);
+      });      
     }
   }, [])
 
@@ -35,6 +35,12 @@ function App() {
       setIsLoaded(true); 
     } 
   }, [repositories])
+
+  useEffect(() => {
+    if(error) {
+      setIsLoaded(true); 
+    } 
+  }, [error])
 
   if (error) {
     return <div>Error: {error.message}</div>;

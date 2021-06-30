@@ -4,8 +4,10 @@ from dataclasses import dataclass
 from flask import Flask, jsonify
 from flask_restful import Api, Resource
 import requests
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 app.secret_key = 'any random string'
 api = Api(app)
 
@@ -75,14 +77,14 @@ class RepositoryResource(Resource):
 
         repositories = []
 
-        response = requests.get('https://api.github.com/repositories')
+        data = requests.get('https://api.github.com/repositories')
 
-        if(response.status_code >= 400):
-            return "We run out of requests" # limit: 60
+        if(data.status_code >= 400):
+            return "We run out of requests", 400 # limit: 60
 
         i = 0 # to request just 2 repositories
 
-        for item in response.json():
+        for item in data.json():
 
             if i >= 2:
                 break
@@ -97,7 +99,11 @@ class RepositoryResource(Resource):
 
             i = i + 1
 
-        return jsonify(repositories)
+        response = jsonify(repositories)
+
+        response.headers.add("Access-Control-Allow-Origin", "*")
+
+        return response, 200
 
 
 api.add_resource(RepositoryResource, "/get-repositories")
