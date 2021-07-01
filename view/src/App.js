@@ -1,6 +1,5 @@
 import './App.css';
 import {useEffect, useState} from 'react'
-import repos from './store.json'
 
 const BASE = 'http://127.0.0.1:5000'
 
@@ -31,7 +30,7 @@ function App() {
     setStars( {...stars, max: parseInt(e.target.value) } );
   }
 
-  function getDateStrInProperFormat(date) {
+  function getDateStrInCorrectFormat(date) {
     return date.getFullYear() 
       + '-' + (date.getMonth() + 1) 
       + '-' + date.getDate();
@@ -40,15 +39,13 @@ function App() {
   function handleChangeMinLastCommit(e) {
     let date = new Date(e.target.value);
 
-    console.log(date)
-
-    setLastCommit( {...lastCommit, min: getDateStrInProperFormat(date) } );
+    setLastCommit( {...lastCommit, min: getDateStrInCorrectFormat(date) } );
   }
 
   function handleChangeMaxLastCommit(e) {
     let date = new Date(e.target.value);
 
-    setLastCommit( {...lastCommit, max: getDateStrInProperFormat(date) } );
+    setLastCommit( {...lastCommit, max: getDateStrInCorrectFormat(date) } );
   }
 
 
@@ -56,7 +53,7 @@ function App() {
     fetch(BASE + route)
     .then((response) => {
       if (!response.ok) {
-        throw new Error("Not 2xx response")
+        throw new Error("Something went wrong")
       }
       return response.json();
     })
@@ -75,55 +72,52 @@ function App() {
     return 'languages=' + languages.toString(); 
   }
 
-  function getStarsQuery() {
-    if(!Number.isInteger(stars.min) && !Number.isInteger(stars.max)) { // user DOESN'T select any criteria
+  function getIntervalQuery(obj, paramName) {
+    if(!obj.min && !obj.max) { // user DOESN'T select any criteria
       return '';
     }
-    const paramName = 'stars=';
+    paramName += '=';
 
-    if(Number.isInteger(stars.min) && Number.isInteger(stars.max)) { // user selects BOTH criteria
-      if(stars.min > stars.max) {
-        setError(new Error("Minimal star count can't be bigger than maximal star count"));
+    if(obj.min && obj.max) { // user selects BOTH criteria
+      if(obj.min > obj.max) {
+        setError(new Error("Minimal" + paramName + "can't be bigger than maximal"));
       } 
-      return paramName + stars.min + '..' + stars.max;
+      return paramName + obj.min + '..' + obj.max;
     }
-    if(Number.isInteger(stars.min)) { // user selects MIN stars
-      return paramName + '>=' + stars.min;
+    if(obj.min) { // user selects MIN
+      return paramName + '>=' + obj.min;
     }
-    // user selects MAX stars
-    return paramName + '<=' + stars.max;
-    
+    // user selects MAX
+    return paramName + '<=' + obj.max;
+  }
+
+  function getStarsQuery() {
+    return getIntervalQuery(stars, 'stars');
   }
 
   function getLastCommitQuery() {
-    if(!lastCommit.min && !lastCommit.max) { // user DOESN'T select any criteria
-      return '';
-    }
-    const paramName = 'last_commit=';
+    return getIntervalQuery(lastCommit, 'last_commit');
+  }
 
-    if(lastCommit.min && lastCommit.max) { // user selects BOTH criteria
-      if(lastCommit.min > lastCommit.max) {
-        setError(new Error("Minimal commit date can't be bigger than maximal last commit date"));
-      } 
-      return paramName + lastCommit.min + '..' + lastCommit.max;
+  function getParametrStr( parametr, query ) {
+    if( query.parametrs && parametr ) {
+      parametr = '&' + parametr;
     }
-    if(lastCommit.min) { // user selects MIN date
-      return paramName + '>=' + lastCommit.min;
-    }
-    // user selects MAX date
-    return paramName + '<=' + lastCommit.max;
+    query.parametrs += parametr;
   }
 
   function submitForm(e) {
+    setIsLoaded(false);
+
     e.preventDefault();
 
-    let query = '/repositories/filter?';
+    let query = { path: '/repositories/filter?', parametrs: '' };
 
-    query += getLanguagesQuery();
-    query += getStarsQuery();
-    query += getLastCommitQuery();
+    getParametrStr(getLanguagesQuery(), query);
+    getParametrStr(getStarsQuery(), query);
+    getParametrStr(getLastCommitQuery(), query);
 
-    getRepositoriesFromServer(query);
+    getRepositoriesFromServer(query.path + query.parametrs);
   }
 
   useEffect(() => {
