@@ -11,6 +11,7 @@ CORS(app)
 app.secret_key = 'any random string'
 api = Api(app)
 
+
 @dataclass
 class Repository:
     name: str
@@ -72,17 +73,23 @@ class RepositoryFromDictionaryConverter:
         return datetime.datetime.strptime(response.json()['created_at'], '%Y-%m-%dT%H:%M:%S%fZ')
 
 
-class RepositoryResource(Resource):
+def getQueriesRemaining():
+    response = requests.get('https://api.github.com/rate_limit')
+
+    return response.json()['resources']['core']['remaining']
+
+@api.resource('/repositories')
+class Repositories(Resource):
     def get(self):
 
         repositories = []
 
         data = requests.get('https://api.github.com/repositories')
 
-        if(data.status_code >= 400):
-            return "We run out of requests", 400 # limit: 60
+        if data.status_code >= 400:
+            return "We run out of requests", 400  # limit: 60
 
-        i = 0 # to request just 2 repositories
+        i = 0  # to request just 2 repositories
 
         for item in data.json():
 
@@ -106,7 +113,33 @@ class RepositoryResource(Resource):
         return response
 
 
-api.add_resource(RepositoryResource, "/get-repositories")
+@api.resource('/repositories/filter')
+class FilteredRepositories(Resource):
+    def get(self):
+        repositories = []
+
+        payload = {'q': "language:C", 'per_page': 2}
+
+        data = requests.get('https://api.github.com/search/repositories', params=payload)
+
+        if getQueriesRemaining() == 0:
+            return "We run out of requests", 400  # limit: 60
+
+        for item in data.json()['items']:
+
+            converter = RepositoryFromDictionaryConverter(item)
+
+            repository = converter.Convert()
+            dictionary_repository = repository.__dict__
+
+            repositories.append(dictionary_repository)
+
+        response = jsonify(repositories)
+
+        response.headers['Access-Control-Allow-Origin'] = '*'
+
+        return response
+
 
 if __name__ == "__main__":
     app.run(debug=True)

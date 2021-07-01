@@ -1,7 +1,8 @@
 import './App.css';
 import {useEffect, useState} from 'react'
 import repos from './store.json'
-const ApiUrl = 'http://127.0.0.1:5000/get-repositories'
+
+const BASE = 'http://127.0.0.1:5000'
 
 function App() {
   const [error, setError] = useState(null);
@@ -9,7 +10,6 @@ function App() {
   const [repositories, setRepositories] = useState(null);
 
   const [languages, setLanguages] = useState(null)
-
 
   function getFilteredRepositories() {
     if(languages) {
@@ -55,7 +55,7 @@ function App() {
       setRepositories(JSON.parse(localStorage.getItem('repositories')));
     }
     else {
-      fetch(ApiUrl)
+      fetch(BASE + '/repositories')
       .then((response) => {
         if (!response.ok) {
           throw new Error("Not 2xx response")
