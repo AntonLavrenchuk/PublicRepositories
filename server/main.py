@@ -1,7 +1,7 @@
 import datetime
 from dataclasses import dataclass
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_restful import Api, Resource
 import requests
 from flask_cors import CORS
@@ -116,9 +116,12 @@ class Repositories(Resource):
 @api.resource('/repositories/filter')
 class FilteredRepositories(Resource):
     def get(self):
+
+        languages = request.args.get('languages')
+
         repositories = []
 
-        payload = {'q': "language:C", 'per_page': 2}
+        payload = {'q': f'languages:{languages}', 'per_page': 2}
 
         data = requests.get('https://api.github.com/search/repositories', params=payload)
 
