@@ -50,24 +50,34 @@ function App() {
     return [...resultSet];
   }
 
+  function getRepositoriesFromServer(route) {
+    fetch(BASE + route)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Not 2xx response")
+      }
+      return response.json();
+    })
+    .then((data) => {
+      setRepositories(data);
+    })
+    .catch((err) => {
+      setError(err);
+    });      
+  }
+
+  function submitForm(e) {
+    e.preventDefault();
+
+    getRepositoriesFromServer('/repositories/filter?languages=' + languages.toString())
+  }
+
   useEffect(() => {
     if( localStorage.getItem('repositories') != null ) {
       setRepositories(JSON.parse(localStorage.getItem('repositories')));
     }
     else {
-      fetch(BASE + '/repositories')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Not 2xx response")
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setRepositories(data);
-      })
-      .catch((err) => {
-        setError(err);
-      });      
+      getRepositoriesFromServer('/repositories');
     }
   }, [])
 
@@ -76,6 +86,7 @@ function App() {
       localStorage.setItem('repositories', JSON.stringify(repositories));
       setIsLoaded(true); 
     } 
+    console.log(repositories)
   }, [repositories])
 
   useEffect(() => {
@@ -100,10 +111,10 @@ function App() {
             ))}
           </select>
 
-          <button onClick={(e)=>e.preventDefault()}>Submit</button>
+          <button onClick={submitForm}>Submit</button>
         </form>
         <ul>
-          {Object.values(getFilteredRepositories()).map(repository => (
+          {Object.values(repositories).map(repository => (
                 <li key={repository.owner}>
                   <p>Name: {repository.name}</p>
                   <p>Owner: {repository.owner}</p>
