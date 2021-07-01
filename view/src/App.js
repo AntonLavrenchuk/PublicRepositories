@@ -1,6 +1,5 @@
 import './App.css';
 import {useEffect, useState} from 'react'
-import repos from './store.json'
 
 const BASE = 'http://127.0.0.1:5000'
 
@@ -9,45 +8,116 @@ function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [repositories, setRepositories] = useState(null);
 
-  const [languages, setLanguages] = useState(null)
-
-  function getFilteredRepositories() {
-    if(languages) {
-      var hasIntersection = (arr1, arr2) => {
-        for(const el1 of arr1) {
-          for(const el2 of arr2) {
-            if( el1 == el2 ) {
-              return true;
-            }
-          }
-        }
-        return false;
-      }
-
-      return repositories.filter(repository => hasIntersection(repository.languages, languages));
-    }
-
-
-    return repositories;
-  }
+  const [languages, setLanguages] = useState(null);
+  const [stars, setStars] = useState({
+    min: null, 
+    max: null 
+  });
+  const [lastCommit, setLastCommit] = useState({
+    min: null, 
+    max: null 
+  });
 
   function handleChangeLanguages(e) {
-    let selectedValues = Array.from(e.target.selectedOptions, option => option.value);
-
-    setLanguages(selectedValues);
+    setLanguages(e.target.value);
   }
 
-  function getUniqueLanguages() {
+  function handleChangeMinStars(e) {
+    setStars( {...stars, min: parseInt(e.target.value) } );
+  }
 
-    var resultSet = new Set();
+  function handleChangeMaxStars(e) {
+    setStars( {...stars, max: parseInt(e.target.value) } );
+  }
 
-    Object.values(repositories).map(repository => (
-      repository.languages.map(language => (
-        resultSet.add(language)
-      ))
-    ));
+  function getDateStrInCorrectFormat(date) {
+    return date.getFullYear() 
+      + '-' + (date.getMonth() + 1) 
+      + '-' + date.getDate();
+  }
 
-    return [...resultSet];
+  function handleChangeMinLastCommit(e) {
+    let date = new Date(e.target.value);
+
+    setLastCommit( {...lastCommit, min: getDateStrInCorrectFormat(date) } );
+  }
+
+  function handleChangeMaxLastCommit(e) {
+    let date = new Date(e.target.value);
+
+    setLastCommit( {...lastCommit, max: getDateStrInCorrectFormat(date) } );
+  }
+
+
+  function getRepositoriesFromServer(route) {
+    fetch(BASE + route)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Something went wrong")
+      }
+      return response.json();
+    })
+    .then((data) => {
+      setRepositories(data);
+    })
+    .catch((err) => {
+      setError(err);
+    });      
+  }
+
+  function getLanguagesQuery() {
+    if(!languages) {
+      return '';
+    }
+    return 'languages=' + languages.toString(); 
+  }
+
+  function getIntervalQuery(obj, paramName) {
+    if(!obj.min && !obj.max) { // user DOESN'T select any criteria
+      return '';
+    }
+    paramName += '=';
+
+    if(obj.min && obj.max) { // user selects BOTH criteria
+      if(obj.min > obj.max) {
+        setError(new Error("Minimal" + paramName + "can't be bigger than maximal"));
+      } 
+      return paramName + obj.min + '..' + obj.max;
+    }
+    if(obj.min) { // user selects MIN
+      return paramName + '>=' + obj.min;
+    }
+    // user selects MAX
+    return paramName + '<=' + obj.max;
+  }
+
+  function getStarsQuery() {
+    return getIntervalQuery(stars, 'stars');
+  }
+
+  function getLastCommitQuery() {
+    return getIntervalQuery(lastCommit, 'last_commit');
+  }
+
+  function getParametrStr( parametr, query ) {
+    if( query.parametrs && parametr ) {
+      parametr = '&' + parametr;
+    }
+    query.parametrs += parametr;
+  }
+
+  function submitForm(e) {
+    setIsLoaded(false);
+
+    e.preventDefault();
+
+    let query = { path: '/repositories/filter?', parametrs: '' };
+
+    getParametrStr(getLanguagesQuery(), query);
+    getParametrStr(getStarsQuery(), query);
+    getParametrStr(getLastCommitQuery(), query);
+
+    getRepositoriesFromServer(query.path + query.parametrs);
   }
 
   useEffect(() => {
@@ -55,19 +125,7 @@ function App() {
       setRepositories(JSON.parse(localStorage.getItem('repositories')));
     }
     else {
-      fetch(BASE + '/repositories')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Not 2xx response")
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setRepositories(data);
-      })
-      .catch((err) => {
-        setError(err);
-      });      
+      getRepositoriesFromServer('/repositories');
     }
   }, [])
 
@@ -92,24 +150,34 @@ function App() {
     return (
       <div>
         <form>
-          <select name="languages" multiple onChange={handleChangeLanguages}>
-            {getUniqueLanguages().map((language) => (
-              <option name={language} key = {language}>
-                {language}
-              </option>
-            ))}
-          </select>
+          <p>
+            Languages:
+            <input name="languages" onChange={handleChangeLanguages}></input>
+          </p>
 
-          <button onClick={(e)=>e.preventDefault()}>Submit</button>
+          <p>
+            Stars:
+            <input type='number' name='minStars' placeholder='from' onChange={handleChangeMinStars}></input>
+            <input type='number' name='maxStars' placeholder='to' onChange={handleChangeMaxStars}></input>
+          </p>
+
+          <p>
+            Last commit:
+            <input type="datetime-local" name='minLastCommit' placeholder='from' onChange={handleChangeMinLastCommit}></input>
+            <input type="datetime-local" name='maxLastCommit' placeholder='to' onChange={handleChangeMaxLastCommit}></input>
+          </p>
+
+          <button onClick={submitForm}>Submit</button>
         </form>
         <ul>
-          {Object.values(getFilteredRepositories()).map(repository => (
+          {Object.values(repositories).map(repository => (
                 <li key={repository.owner}>
                   <p>Name: {repository.name}</p>
                   <p>Owner: {repository.owner}</p>
                   <p>Description: {repository.description}</p>
                   <p>Issues: {repository.issues}</p>
                   <p>Pulls: {repository.pulls}</p>
+                  <p>Stars: {repository.stars}</p>
                   Languages:
                   <ol>
                     {repository.languages.map(language => (
