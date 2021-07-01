@@ -20,6 +20,7 @@ class Repository:
     issues: int
     pulls: int
     languages: list
+    stars: int
     created_at: datetime
 
 
@@ -35,6 +36,7 @@ class RepositoryFromDictionaryConverter:
             self.getIssues(),
             self.getPulls(),
             self.getLanguages(),
+            self.getStarsCount(),
             self.getCreatedAt())
 
         return repository
@@ -67,6 +69,11 @@ class RepositoryFromDictionaryConverter:
 
         return list(languages)
 
+    def getStarsCount(self):
+        response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}')
+
+        return response.json()['stargazers_count']
+
     def getCreatedAt(self):
         response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}')
 
@@ -77,6 +84,7 @@ def getQueriesRemaining():
     response = requests.get('https://api.github.com/rate_limit')
 
     return response.json()['resources']['core']['remaining']
+
 
 @api.resource('/repositories')
 class Repositories(Resource):
@@ -118,10 +126,11 @@ class FilteredRepositories(Resource):
     def get(self):
 
         languages = request.args.get('languages')
-
+        stars = request.args.get('stars')
+        print(stars)
         repositories = []
 
-        payload = {'q': f'languages:{languages}', 'per_page': 2}
+        payload = {'q': f'languages:{languages}+stars:{stars}', 'per_page': 2}
 
         data = requests.get('https://api.github.com/search/repositories', params=payload)
 

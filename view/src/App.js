@@ -9,45 +9,22 @@ function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [repositories, setRepositories] = useState(null);
 
-  const [languages, setLanguages] = useState(null)
-
-  function getFilteredRepositories() {
-    if(languages) {
-      var hasIntersection = (arr1, arr2) => {
-        for(const el1 of arr1) {
-          for(const el2 of arr2) {
-            if( el1 == el2 ) {
-              return true;
-            }
-          }
-        }
-        return false;
-      }
-
-      return repositories.filter(repository => hasIntersection(repository.languages, languages));
-    }
-
-
-    return repositories;
-  }
+  const [languages, setLanguages] = useState(null);
+  const [stars, setStars] = useState({
+    min: null, 
+    max: null 
+  });
 
   function handleChangeLanguages(e) {
-    let selectedValues = Array.from(e.target.selectedOptions, option => option.value);
-
-    setLanguages(selectedValues);
+    setLanguages(e.target.value);
   }
 
-  function getUniqueLanguages() {
+  function handleChangeMinStars(e) {
+    setStars( {...stars, min: parseInt(e.target.value) } );
+  }
 
-    var resultSet = new Set();
-
-    Object.values(repositories).map(repository => (
-      repository.languages.map(language => (
-        resultSet.add(language)
-      ))
-    ));
-
-    return [...resultSet];
+  function handleChangeMaxStars(e) {
+    setStars( {...stars, max: parseInt(e.target.value) } );
   }
 
   function getRepositoriesFromServer(route) {
@@ -66,10 +43,42 @@ function App() {
     });      
   }
 
+  function getLanguagesQuery() {
+    if(!languages) {
+      return '';
+    }
+    return 'languages=' + languages.toString(); 
+  }
+
+  function getStarsQuery() {
+    if(!Number.isInteger(stars.min) && !Number.isInteger(stars.max)) { // user DOESN'T select any criteria
+      return '';
+    }
+    const paramName = 'stars=';
+
+    if(Number.isInteger(stars.min) && Number.isInteger(stars.max)) { // user selects BOTH criteria
+      if(stars.min > stars.max) {
+        setError(new Error("Minimal star count can't be bigger than maximal star count"));
+      } 
+      return paramName + stars.min + '..' + stars.max;
+    }
+    if(Number.isInteger(stars.min)) { // user selects MIN stars
+      return paramName + '>=' + stars.min;
+    }
+    // user selects MAX stars
+    return paramName + '<=' + stars.max;
+    
+  }
+
   function submitForm(e) {
     e.preventDefault();
 
-    getRepositoriesFromServer('/repositories/filter?languages=' + languages.toString())
+    let query = '/repositories/filter?';
+
+    query += getLanguagesQuery();
+    query += getStarsQuery();
+
+    getRepositoriesFromServer(query);
   }
 
   useEffect(() => {
@@ -86,7 +95,6 @@ function App() {
       localStorage.setItem('repositories', JSON.stringify(repositories));
       setIsLoaded(true); 
     } 
-    console.log(repositories)
   }, [repositories])
 
   useEffect(() => {
@@ -103,13 +111,16 @@ function App() {
     return (
       <div>
         <form>
-          <select name="languages" multiple onChange={handleChangeLanguages}>
-            {getUniqueLanguages().map((language) => (
-              <option name={language} key = {language}>
-                {language}
-              </option>
-            ))}
-          </select>
+          <p>
+            Languages:
+            <input name="languages" onChange={handleChangeLanguages}></input>
+          </p>
+
+          <p>
+            Stars:
+            <input type='number' name='minStars' placeholder='from' onChange={handleChangeMinStars}></input>
+            <input type='number' name='maxStars' placeholder='to' onChange={handleChangeMaxStars}></input>
+          </p>
 
           <button onClick={submitForm}>Submit</button>
         </form>
@@ -121,6 +132,7 @@ function App() {
                   <p>Description: {repository.description}</p>
                   <p>Issues: {repository.issues}</p>
                   <p>Pulls: {repository.pulls}</p>
+                  <p>Stars: {repository.stars}</p>
                   Languages:
                   <ol>
                     {repository.languages.map(language => (
