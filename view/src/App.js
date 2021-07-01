@@ -14,6 +14,10 @@ function App() {
     min: null, 
     max: null 
   });
+  const [lastCommit, setLastCommit] = useState({
+    min: null, 
+    max: null 
+  });
 
   function handleChangeLanguages(e) {
     setLanguages(e.target.value);
@@ -26,6 +30,27 @@ function App() {
   function handleChangeMaxStars(e) {
     setStars( {...stars, max: parseInt(e.target.value) } );
   }
+
+  function getDateStrInProperFormat(date) {
+    return date.getFullYear() 
+      + '-' + (date.getMonth() + 1) 
+      + '-' + date.getDate();
+  }
+
+  function handleChangeMinLastCommit(e) {
+    let date = new Date(e.target.value);
+
+    console.log(date)
+
+    setLastCommit( {...lastCommit, min: getDateStrInProperFormat(date) } );
+  }
+
+  function handleChangeMaxLastCommit(e) {
+    let date = new Date(e.target.value);
+
+    setLastCommit( {...lastCommit, max: getDateStrInProperFormat(date) } );
+  }
+
 
   function getRepositoriesFromServer(route) {
     fetch(BASE + route)
@@ -70,6 +95,25 @@ function App() {
     
   }
 
+  function getLastCommitQuery() {
+    if(!lastCommit.min && !lastCommit.max) { // user DOESN'T select any criteria
+      return '';
+    }
+    const paramName = 'last_commit=';
+
+    if(lastCommit.min && lastCommit.max) { // user selects BOTH criteria
+      if(lastCommit.min > lastCommit.max) {
+        setError(new Error("Minimal commit date can't be bigger than maximal last commit date"));
+      } 
+      return paramName + lastCommit.min + '..' + lastCommit.max;
+    }
+    if(lastCommit.min) { // user selects MIN date
+      return paramName + '>=' + lastCommit.min;
+    }
+    // user selects MAX date
+    return paramName + '<=' + lastCommit.max;
+  }
+
   function submitForm(e) {
     e.preventDefault();
 
@@ -77,6 +121,7 @@ function App() {
 
     query += getLanguagesQuery();
     query += getStarsQuery();
+    query += getLastCommitQuery();
 
     getRepositoriesFromServer(query);
   }
@@ -120,6 +165,12 @@ function App() {
             Stars:
             <input type='number' name='minStars' placeholder='from' onChange={handleChangeMinStars}></input>
             <input type='number' name='maxStars' placeholder='to' onChange={handleChangeMaxStars}></input>
+          </p>
+
+          <p>
+            Last commit:
+            <input type="datetime-local" name='minLastCommit' placeholder='from' onChange={handleChangeMinLastCommit}></input>
+            <input type="datetime-local" name='maxLastCommit' placeholder='to' onChange={handleChangeMaxLastCommit}></input>
           </p>
 
           <button onClick={submitForm}>Submit</button>

@@ -22,6 +22,7 @@ class Repository:
     languages: list
     stars: int
     created_at: datetime
+    last_commit: datetime
 
 
 class RepositoryFromDictionaryConverter:
@@ -37,7 +38,8 @@ class RepositoryFromDictionaryConverter:
             self.getPulls(),
             self.getLanguages(),
             self.getStarsCount(),
-            self.getCreatedAt())
+            self.getCreatedAt(),
+            self.getLastCommit())
 
         return repository
 
@@ -78,6 +80,11 @@ class RepositoryFromDictionaryConverter:
         response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}')
 
         return datetime.datetime.strptime(response.json()['created_at'], '%Y-%m-%dT%H:%M:%S%fZ')
+
+    def getLastCommit(self):
+        response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}')
+
+        return datetime.datetime.strptime(response.json()['pushed_at'], '%Y-%m-%dT%H:%M:%S%fZ')
 
 
 def getQueriesRemaining():
@@ -127,10 +134,26 @@ class FilteredRepositories(Resource):
 
         languages = request.args.get('languages')
         stars = request.args.get('stars')
-        print(stars)
+        last_commit = request.args.get('last_commit')
+
         repositories = []
 
-        payload = {'q': f'languages:{languages}+stars:{stars}', 'per_page': 2}
+        request_params = ''
+
+        if languages:
+            request_params += f'languages:{languages}'
+
+        if stars:
+            if request_params:
+                request_params += '+'
+            request_params += f'stars:{stars}'
+
+        if last_commit:
+            if request_params:
+                request_params += '+'
+            request_params += f'pushed_at:{last_commit}'
+
+        payload = {'q': request_params, 'per_page': 2}
 
         data = requests.get('https://api.github.com/search/repositories', params=payload)
 
