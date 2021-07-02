@@ -2,7 +2,7 @@ from flask_restful import Resource
 import requests
 
 from parameters_builder import ParametersBuilder
-from response_factory import ResponseFactory
+from response_builder import ResponseBuilder
 
 
 class FilteredRepositories(Resource):
@@ -15,7 +15,7 @@ class FilteredRepositories(Resource):
 
         data = requests.get('https://api.github.com/search/repositories', params=payload)
 
-        factory = ResponseFactory()
+        factory = ResponseBuilder()
 
         response = factory.getResponse(data.json()['items'])
 

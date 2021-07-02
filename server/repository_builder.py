@@ -3,7 +3,7 @@ import requests
 import datetime
 
 
-class RepositoryFactory:
+class RepositoryBuilder:
     def __init__(self, received_dictionary):
         self.dictionary = received_dictionary
 
