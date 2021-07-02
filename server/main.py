@@ -1,8 +1,9 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 from flask_restful import Api, Resource
 import requests
 from flask_cors import CORS
 
+from parameters_factory import ParametersFactory
 from repository_factory import RepositoryFactory
 
 app = Flask(__name__)
@@ -48,36 +49,12 @@ class Repositories(Resource):
         return response
 
 
-def addParameter(parameter_value, parameter_name, parameters_wrapper):  # wrapper to pass value by reference
-    if not parameter_value:
-        return
-
-    if parameters_wrapper[0] and parameter_value:
-        parameters_wrapper[0] += '+'
-
-    parameters_wrapper[0] += f'{parameter_name}:{parameter_value}'
-
-
-def getFilterParameters():
-    languages = request.args.get('languages')
-    stars = request.args.get('stars')
-    last_commit = request.args.get('last_commit')
-
-    wrapper = ['']
-
-    addParameter(languages, 'languages', wrapper)
-    addParameter(stars, 'stars', wrapper)
-    addParameter(last_commit, 'pushed_at', wrapper)
-
-    request_params = wrapper[0]
-
-    return request_params
-
-
 @api.resource('/repositories/filter')
 class FilteredRepositories(Resource):
     def get(self):
-        parameters = getFilterParameters()
+        factory = ParametersFactory()
+
+        parameters = factory.getFilterParameters()
 
         payload = {'q': parameters, 'per_page': 2}
 
