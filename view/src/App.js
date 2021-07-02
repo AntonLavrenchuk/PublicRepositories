@@ -11,7 +11,6 @@ function App() {
   const [repositories, setRepositories] = useState([]);
   const [route, setRoute] = useState('');
 
-
   function getRepositoriesFromServer() {
     fetch(BASE + route)
     .then((response) => {
@@ -38,10 +37,8 @@ function App() {
   }, [])
 
   useEffect(() => {
-    console.log(route);
     if(route) {
-      console.log(route);
-      // getRepositoriesFromServer();
+      getRepositoriesFromServer();
     }
   }, [route]);
 

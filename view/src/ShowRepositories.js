@@ -1,8 +1,6 @@
 import './App.css';
 
 function ShowRepositories({repositories}) {
-  console.log(repositories);
-
   if(repositories) {
     return (
       <div>

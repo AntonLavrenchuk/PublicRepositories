@@ -1,5 +1,8 @@
-import {useEffect, useState} from 'react'
+import {useState} from 'react'
 
+import ArrayParameter from './ArrayParameter.js';
+import IntervalParameter from './IntervalParameter';
+import ParametersBuilder from './ParametersBuilder';
 
 function SetSearchCriteria({setRoute}) {
 
@@ -14,57 +17,17 @@ function SetSearchCriteria({setRoute}) {
     max: null 
   });
 
-  function getIntervalQuery(obj, paramName) {
-    if(!obj.min && !obj.max) { // user DOESN'T select any criteria
-      return '';
-    }
-    paramName += '=';
-
-    if(obj.min && obj.max) { // user selects BOTH criteria
-      if(obj.min > obj.max) {
-        setError("Minimal " + paramName + " can't be bigger than maximal");
-      } 
-      return paramName + obj.min + '..' + obj.max;
-    }
-    if(obj.min) { // user selects MIN
-      return paramName + '>=' + obj.min;
-    }
-    // user selects MAX
-    return paramName + '<=' + obj.max;
-  }
-
-  function getLanguagesQuery() {
-    if(!languages) {
-      return '';
-    }
-    return 'languages=' + languages.toString(); 
-  }
-
-  function getStarsQuery() {
-    return getIntervalQuery(stars, 'stars');
-  }
-
-  function getLastCommitQuery() {
-    return getIntervalQuery(lastCommit, 'last_commit');
-  }
-
-  function getParametrStr( parameter, query ) {
-    if( query.parametrs && parameter ) {
-      parameter = '&' + parameter;
-    }
-    query.parametrs += parameter;
-  }
-
   function getDateStrInCorrectFormat(date) {
+    date = new Date(date);
+
     return date.getFullYear() 
       + '-' + (date.getMonth() + 1) 
       + '-' + date.getDate();
   }
 
-
   //Handlers
 
-  function submitForm(e) {
+  function handleSubmit(e) {
     e.preventDefault();
 
     let query = { 
@@ -72,9 +35,13 @@ function SetSearchCriteria({setRoute}) {
       parametrs: '' 
     };
 
-    getParametrStr(getLanguagesQuery(), query);
-    getParametrStr(getStarsQuery(), query);
-    getParametrStr(getLastCommitQuery(), query);
+    var builder = new ParametersBuilder([
+      new ArrayParameter(languages, 'languages'),
+      new IntervalParameter(stars, 'stars'),
+      new IntervalParameter(lastCommit, 'last_commit')
+    ]);
+  
+    query.parametrs = builder.getParametersInQuery();
 
     if( query.parametrs === '' ) {
       query.path = '/repositories';
@@ -84,15 +51,11 @@ function SetSearchCriteria({setRoute}) {
   }
 
   function handleChangeMinLastCommit(e) {
-    let date = new Date(e.target.value);
-
-    setLastCommit( {...lastCommit, min: getDateStrInCorrectFormat(date) } );
+    setLastCommit( {...lastCommit, min: getDateStrInCorrectFormat(e.target.value) } );
   }
 
   function handleChangeMaxLastCommit(e) {
-    let date = new Date(e.target.value);
-
-    setLastCommit( {...lastCommit, max: getDateStrInCorrectFormat(date) } );
+    setLastCommit( {...lastCommit, max: getDateStrInCorrectFormat(e.target.value) } );
   }
 
   function handleChangeLanguages(e) {
@@ -106,7 +69,6 @@ function SetSearchCriteria({setRoute}) {
   function handleChangeMaxStars(e) {
     setStars( {...stars, max: parseInt(e.target.value) } );
   }
-
 
   return (
     <div>
@@ -128,7 +90,7 @@ function SetSearchCriteria({setRoute}) {
           <input type="datetime-local" name='maxLastCommit' placeholder='to' onChange={handleChangeMaxLastCommit}></input>
         </p>
 
-        <button onClick={submitForm}>Submit</button>
+        <button onClick={handleSubmit}>Submit</button>
       </form>
       <p>{error}</p>
     </div>
