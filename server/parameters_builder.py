@@ -1,7 +1,7 @@
 from flask import request
 
 
-class ParametersFactory:
+class ParametersBuilder:
     def __init__(self):
         self.parameters = ''
 

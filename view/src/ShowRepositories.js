@@ -1,6 +1,6 @@
 import './App.css';
 
-function Repositories({repositories}) {
+function ShowRepositories({repositories}) {
   console.log(repositories);
 
   if(repositories) {
@@ -34,4 +34,4 @@ function Repositories({repositories}) {
   return "Nothing to show"
 }
 
-export default Repositories;
+export default ShowRepositories;

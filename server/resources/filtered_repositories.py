@@ -1,15 +1,15 @@
 from flask_restful import Resource
 import requests
 
-from parameters_factory import ParametersFactory
+from parameters_builder import ParametersBuilder
 from response_factory import ResponseFactory
 
 
 class FilteredRepositories(Resource):
     def get(self):
-        factory = ParametersFactory()
+        builder = ParametersBuilder()
 
-        parameters = factory.getFilterParameters()
+        parameters = builder.getFilterParameters()
 
         payload = {'q': parameters, 'per_page': 2}
 
