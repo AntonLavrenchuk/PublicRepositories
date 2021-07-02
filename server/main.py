@@ -2,8 +2,8 @@ from flask import Flask
 from flask_restful import Api
 from flask_cors import CORS
 
-from filtered_repositories import FilteredRepositories
-from repositories import Repositories
+from resources.filtered_repositories import FilteredRepositories
+from resources.repositories import Repositories
 
 app = Flask(__name__)
 CORS(app)
