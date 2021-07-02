@@ -6,7 +6,7 @@ const BASE = 'http://127.0.0.1:5000'
 function App() {
   const [error, setError] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [repositories, setRepositories] = useState(null);
+  const [repositories, setRepositories] = useState([]);
 
   const [languages, setLanguages] = useState(null);
   const [stars, setStars] = useState({
@@ -99,11 +99,11 @@ function App() {
     return getIntervalQuery(lastCommit, 'last_commit');
   }
 
-  function getParametrStr( parametr, query ) {
-    if( query.parametrs && parametr ) {
-      parametr = '&' + parametr;
+  function getParametrStr( parameter, query ) {
+    if( query.parametrs && parameter ) {
+      parameter = '&' + parameter;
     }
-    query.parametrs += parametr;
+    query.parametrs += parameter;
   }
 
   function submitForm(e) {
@@ -130,7 +130,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if(repositories) {
+    if(repositories.length) {
       localStorage.setItem('repositories', JSON.stringify(repositories));
       setIsLoaded(true); 
     } 
@@ -187,6 +187,7 @@ function App() {
                     ))}
                   </ol>
                   <p>Created at: {repository.created_at}</p>
+                  <p>Created at: {repository.last_commit}</p>
                 </li>
           ))}
         </ul>

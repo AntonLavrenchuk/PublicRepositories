@@ -1,90 +1,14 @@
-import datetime
-from dataclasses import dataclass
-
 from flask import Flask, jsonify, request
 from flask_restful import Api, Resource
 import requests
 from flask_cors import CORS
 
+from repository_factory import RepositoryFactory
+
 app = Flask(__name__)
 CORS(app)
 app.secret_key = 'any random string'
 api = Api(app)
-
-
-@dataclass
-class Repository:
-    name: str
-    owner: str
-    description: str
-    issues: int
-    pulls: int
-    languages: list
-    stars: int
-    created_at: datetime
-    last_commit: datetime
-
-
-class RepositoryFromDictionaryConverter:
-    def __init__(self, dictionary):
-        self.Dictionary = dictionary
-
-    def Convert(self):
-        repository = Repository(
-            self.getName(),
-            self.getOwner(),
-            self.getDescription(),
-            self.getIssues(),
-            self.getPulls(),
-            self.getLanguages(),
-            self.getStarsCount(),
-            self.getCreatedAt(),
-            self.getLastCommit())
-
-        return repository
-
-    def getName(self):
-        return self.Dictionary['name']
-
-    def getDescription(self):
-        return self.Dictionary['description']
-
-    def getOwner(self):
-        return self.Dictionary['owner']['login']
-
-    def getIssues(self):
-        response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}/issues?per_page=1')
-
-        for item in response.json():
-            return item['number']
-
-    def getPulls(self):
-        response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}/pulls?per_page=1')
-
-        for item in response.json():
-            return item['number']
-
-    def getLanguages(self):
-        languages_url = self.Dictionary['languages_url']
-
-        languages = requests.get(languages_url).json().keys()
-
-        return list(languages)
-
-    def getStarsCount(self):
-        response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}')
-
-        return response.json()['stargazers_count']
-
-    def getCreatedAt(self):
-        response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}')
-
-        return datetime.datetime.strptime(response.json()['created_at'], '%Y-%m-%dT%H:%M:%S%fZ')
-
-    def getLastCommit(self):
-        response = requests.get(f'https://api.github.com/repos/{self.getOwner()}/{self.getName()}')
-
-        return datetime.datetime.strptime(response.json()['pushed_at'], '%Y-%m-%dT%H:%M:%S%fZ')
 
 
 def getQueriesRemaining():
@@ -93,85 +17,73 @@ def getQueriesRemaining():
     return response.json()['resources']['core']['remaining']
 
 
+def getResponse(received_repositories):
+    repositories = []
+
+    # to request just 2 repositories
+    for i in range(2):
+        factory = RepositoryFactory(received_repositories[i])
+
+        try:
+            repository = factory.create()
+        except:
+            return "We run out of requests", 500  # limit: 60
+
+        repositories.append(repository)
+
+    response = jsonify(repositories)
+
+    response.headers['Access-Control-Allow-Origin'] = '*'
+
+    return response
+
+
 @api.resource('/repositories')
 class Repositories(Resource):
     def get(self):
-
-        repositories = []
-
         data = requests.get('https://api.github.com/repositories')
 
-        if data.status_code >= 400:
-            return "We run out of requests", 400  # limit: 60
-
-        i = 0  # to request just 2 repositories
-
-        for item in data.json():
-
-            if i >= 2:
-                break
-
-            converter = RepositoryFromDictionaryConverter(item)
-
-            repository = converter.Convert()
-
-            dictionary_repository = repository.__dict__
-
-            repositories.append(dictionary_repository)
-
-            i = i + 1
-
-        response = jsonify(repositories)
-
-        response.headers['Access-Control-Allow-Origin'] = '*'
+        response = getResponse(data.json())
 
         return response
+
+
+def addParameter(parameter_value, parameter_name, parameters_wrapper):  # wrapper to pass value by reference
+    if not parameter_value:
+        return
+
+    if parameters_wrapper[0] and parameter_value:
+        parameters_wrapper[0] += '+'
+
+    parameters_wrapper[0] += f'{parameter_name}:{parameter_value}'
+
+
+def getFilterParameters():
+    languages = request.args.get('languages')
+    stars = request.args.get('stars')
+    last_commit = request.args.get('last_commit')
+
+    wrapper = ['']
+
+    addParameter(languages, 'languages', wrapper)
+    addParameter(stars, 'stars', wrapper)
+    addParameter(last_commit, 'pushed_at', wrapper)
+
+    request_params = wrapper[0]
+
+    return request_params
 
 
 @api.resource('/repositories/filter')
 class FilteredRepositories(Resource):
     def get(self):
+        parameters = getFilterParameters()
 
-        languages = request.args.get('languages')
-        stars = request.args.get('stars')
-        last_commit = request.args.get('last_commit')
-
-        repositories = []
-
-        request_params = ''
-
-        if languages:
-            request_params += f'languages:{languages}'
-
-        if stars:
-            if request_params:
-                request_params += '+'
-            request_params += f'stars:{stars}'
-
-        if last_commit:
-            if request_params:
-                request_params += '+'
-            request_params += f'pushed_at:{last_commit}'
-
-        payload = {'q': request_params, 'per_page': 2}
+        payload = {'q': parameters, 'per_page': 2}
 
         data = requests.get('https://api.github.com/search/repositories', params=payload)
 
-        if getQueriesRemaining() == 0:
-            return "We run out of requests", 400  # limit: 60
-
-        for item in data.json()['items']:
-
-            converter = RepositoryFromDictionaryConverter(item)
-
-            repository = converter.Convert()
-            dictionary_repository = repository.__dict__
-
-            repositories.append(dictionary_repository)
-
-        response = jsonify(repositories)
-
-        response.headers['Access-Control-Allow-Origin'] = '*'
+        response = getResponse(data.json()['items'])
 
         return response
 
